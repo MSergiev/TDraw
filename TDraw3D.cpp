@@ -19,7 +19,7 @@ TDraw3D::TDraw3D( float fov, float near, float far ) {
 
     cFPSV = v( 0.0f, 0.0f, 0.0f );
 
-	glewInit();
+	//glewInit();
 }
 
 TDraw3D::~TDraw3D() {

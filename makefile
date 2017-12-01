@@ -2,7 +2,7 @@ CC = g++
 CFLAGS = -I. -Wall
 DEPS = *.cpp
 OBJ = *.o 
-LIBS = -lncursesw -lGLEW -lGL 
+LIBS = -lncursesw 
 
 %.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
