@@ -35,12 +35,12 @@ int main() {
 		//draw.draw3DLine( ORIGIN, V(0,0,1,-1), 3);		
 
 		//draw.cube( ORIGIN, 0.2, 4 );
-		/*draw.sphere(z, rad*2, 0.2, 4);
-		draw.cube( a, rad, 2 );
- 		draw.cube( b, rad, 3 );
- 		draw.cube( c, rad, 1 );
- 		draw.cube( d, rad, 1 );
-		*/
+		draw.sphere( ORIGIN, 0.7, 0.2, 4);
+		//draw.cube( a, rad, 2 );
+ 		//draw.cube( b, rad, 3 );
+ 		//draw.cube( c, rad, 1 );
+ 		//draw.cube( d, rad, 1 );
+		
 		draw.draw();
 			
 		int input = getch();

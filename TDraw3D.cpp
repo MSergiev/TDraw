@@ -15,11 +15,9 @@ TDraw3D::TDraw3D( float fov, float near, float far ) {
     cRV = v( 1.0f, 0.0f, 0.0f );
     cUV = v( 0.0f, 1.0f, 0.0f );
     cFV = v( 0.0f, 0.0f, 1.0f );
-    cPV = v( 0.0f, 0.0f, -1.0f );
+    cPV = v( 0.0f, 0.0f, -5.0f );
 
     cFPSV = v( 0.0f, 0.0f, 0.0f );
-
-	//glewInit();
 }
 
 TDraw3D::~TDraw3D() {
@@ -84,7 +82,7 @@ void TDraw3D::viewMatrix(const v& r, const v& u, const v& f, const v& p) {
 }
 
 void TDraw3D::projectionMatrix() {
-	float yScale = 1.0f/tan(radians(fov/2));
+	float yScale = 1/tan(radians(fov/2));
 	float xScale = yScale / ratio;
 	float nmf = near-far;
 
@@ -94,6 +92,19 @@ void TDraw3D::projectionMatrix() {
 		{0, 0, (near+far)/nmf, 2*far*near/nmf},
 		{0, 0, -1, 0}
 	};
+
+#if 0
+	float r = 10, l = -r;
+	float t = 10, b = -t;
+	float n = near, f = far;
+	
+	pM = {
+		{2/(r-l), 0, 0, 0},
+		{0, 2/(t-b), 0, 0},
+		{0, 0, 2/(f-n), 0},
+		{-(r-l)/(r+l), -(t+b)/(t-b), -(f+n)/(f-n), 1}
+	};
+#endif
 }
 
 void TDraw3D::FPV() {
@@ -102,14 +113,14 @@ void TDraw3D::FPV() {
 	float cY = cos(cFPSV[1]);
 	float sY = sin(cFPSV[1]);
 
-	V x = { cY, 0, -sY, 0 };
-	V y = { sY*sP, cP, cY*sP, 0 };
-	V z = { sY*cP, -sP, cP*cY, 0 };
+	v x = { cY, 0, -sY };
+	v y = { sY*sP, cP, cY*sP };
+	v z = { sY*cP, -sP, cP*cY };
 
 	vM = {
-		{x[0],x[1],x[2], -(x*V(cPV[0], cPV[1], cPV[2], 1))},
-		{y[0],y[1],y[2], -(y*V(cPV[0], cPV[1], cPV[2], 1))},
-		{z[0],z[1],z[2], -(z*V(cPV[0], cPV[1], cPV[2], 1))},
+		{x[0],x[1],x[2], -(x*cPV)},
+		{y[0],y[1],y[2], -(y*cPV)},
+		{z[0],z[1],z[2], -(z*cPV)},
 		{0,0,0,1}
 	};
 }
@@ -152,16 +163,11 @@ void TDraw3D::draw() {
 
 void TDraw3D::cube(const v& c, float r, char color) {
 	v tCube[8];
-	M m = {
-		{r,0,0,c[0]},
-		{0,r,0,c[1]},
-		{0,0,r,c[2]},
-		{0,0,0,1}
-	};
 	
 	for( int i = 0; i < 8; ++i ) {
-		V tmp = m*cubeVertices[i];
-		tCube[i] = getPixel( v(tmp[0],tmp[1],tmp[2]) );
+		tCube[i] = v(cubeVertices[i][0], cubeVertices[i][1], cubeVertices[i][2]);
+		tCube[i] *= v(r,r,r);
+		tCube[i] += c;
 	}
 	drawCube( tCube, color );
 }
@@ -179,10 +185,9 @@ void TDraw3D::draw3DLine( const v& a, const v& b, char color ) {
 	TDraw::drawLine( a1[0], a1[1], b1[0], b1[1], color );	
 }
 
-void TDraw3D::drawCube(const v * cube, char color) {
+void TDraw3D::drawCube(const v* cube, char color) {
 	for( int i = 0; i < 12; ++i ) {
-		TDraw::drawLine( cube[cubeOutline[2*i]][0], cube[cubeOutline[2*i]][1], cube[cubeOutline[2*i+1]][0], cube[cubeOutline[2*i+1]][1], color ); 
-
+		draw3DLine( cube[cubeOutline[2*i]], cube[cubeOutline[2*i+1]], color ); 
 	}
 }
 
@@ -191,7 +196,7 @@ void TDraw3D::drawSphere(const  v& c, float r, float prec, char color) {
 	for( float i = 0; i < 2*M_PI; i+=prec ) {
 		for( float j = 0; j < 2*M_PI; j+=prec ){
 			v p = getPixel(v(r*sin(i)*cos(j)+c[0], r*sin(i)*sin(j)+c[1], r*cos(i)+c[2]));
-			//drawPixel(p[0], p[1], color);
+			//setPixel(p, color);
 			if(j!=0) TDraw::drawLine(p[0], p[1], pOld[0], pOld[1], color);
 			pOld = p;
 		}
@@ -209,7 +214,7 @@ void TDraw3D::drawConic( const v& p, float h, float r1, float r2, char color ) {
 			point[0] = p[0] + rad*cos(j);
 			point[1] = p[1] + rad*sin(j);
 			v pix = getPixel(point);
-			drawPixel(pix[0], pix[1], color);
+			setPixel(pix, color);
 		}
 	}
 }
@@ -224,7 +229,7 @@ void TDraw3D::drawCone( const v& p, float h, float r, char color ) {
 			point[0] = p[0] + rad*cos(j);
 			point[1] = p[1] + rad*sin(j);
 			v pix = getPixel(point);
-			drawPixel(pix[0], pix[1], color);
+			setPixel(pix, color);
 		}
 	}
 }
@@ -237,7 +242,7 @@ void TDraw3D::drawCylinder( const v& p, float h, float r, char color ) {
 			point[0] = p[0] + r*cos(j);
 			point[1] = p[1] + r*sin(j);
 			v pix = getPixel(point);
-			drawPixel(pix[0], pix[1], color);
+			setPixel(pix, color);
 		}
 	}
 }
@@ -295,6 +300,7 @@ void TDraw3D::drawTriangle(v a, v b, v c, char color) {
 }
 
 v TDraw3D::getPixel(const v& p) {
+	//if(p[2] > 10) return v(-1,-1,0);
 	V a(p[0],p[1],p[2],1);
 	a = mvpM*a;
 	v b(a[0],a[1],a[2]);
@@ -305,7 +311,7 @@ v TDraw3D::getPixel(const v& p) {
 	return b;
 }
 
-void TDraw3D::setPixel(const v & v, char color) {
+void TDraw3D::setPixel(const v& v, char color) {
 	//if( v[0] < 0 or v[0] > GetScreenWidth() or v[1] < 0 or v[1] > GetScreenHeight() or v[2] < near or v[2] > far) return;
 	drawPixel( (int)v[0], (int)v[1], color );
 }
@@ -325,20 +331,19 @@ void TDraw3D::drawObject( Model& model ) {
 		std::vector<v> shape;
 		for( size_t f = 0; f < model.shapes[s].mesh.num_face_vertices.size(); ++f ){
 			size_t fv = model.shapes[s].mesh.num_face_vertices[f];
-			for( size_t v = 0; v < fv ; ++v ){
-				/*tinyobj::index_t idx = model.shapes[s].mesh.indices[index_offset+v];
+			for( size_t ve = 0; ve < fv ; ++ve ){
+				tinyobj::index_t idx = model.shapes[s].mesh.indices[index_offset+ve];
 				float vx = model.attrib.vertices[3*idx.vertex_index+0];
 				float vy = model.attrib.vertices[3*idx.vertex_index+1];
 				float vz = model.attrib.vertices[3*idx.vertex_index+2];
-				V vert(vx,vy,vz,1.0);
-				v ver = getPixel( V(vx,vy,vz,1.0) );
+				v ver(vx,vy,vz);
 				shape.push_back( ver );
 				setPixel( ver, model.color );
-				setPixel(V( ver[0]+1, ver[1], ver[2], ver[3]), model.color );
-				setPixel(V( ver[0]-1, ver[1], ver[2], ver[3]), model.color );
-				setPixel(V( ver[0], ver[1]+1, ver[2], ver[3]), model.color );
-				setPixel(V( ver[0], ver[1]-1, ver[2], ver[3]), model.color );
-			*/}
+				setPixel(v( ver[0]+1, ver[1], ver[2]), model.color );
+				setPixel(v( ver[0]-1, ver[1], ver[2]), model.color );
+				setPixel(v( ver[0], ver[1]+1, ver[2]), model.color );
+				setPixel(v( ver[0], ver[1]-1, ver[2]), model.color );
+			}
 			for(size_t sh=0; sh<shape.size()/2; ++sh)
 				TDraw::drawLine( shape[sh][0], shape[sh][1], shape[sh+1][0], shape[sh+1][1], model.color);
 			index_offset+=fv;
