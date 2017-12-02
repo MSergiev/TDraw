@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #define STR_LEN 100
 #define PI 3.141526
@@ -70,6 +71,15 @@ struct vec2 {
 		return *this;
    	}
 
+	inline float length() {
+		return sqrt(vec[0]*vec[0] + vec[1]*vec[1]);
+	}
+
+	inline vec2& normalize() {
+		*this/=length();
+		return *this;	
+	}
+
 	inline void toString ( char in[], bool integer = false ) {
 		char str[STR_LEN];
 		memset( str, 0, sizeof(str) );        
@@ -134,13 +144,31 @@ struct vec3 {
 		}	
 		return dot;
    	}
-   	
+
+	inline vec3& operator&= ( const vec3& a ) {
+		vec3 v;
+		v[0] = vec[1]*a.vec[2] - vec[2]*a.vec[1];
+		v[1] = vec[2]*a.vec[0] - vec[0]*a.vec[2];
+		v[2] = vec[0]*a.vec[1] - vec[1]*a.vec[0];
+		*this = v;
+		return *this;
+	}
+
     inline vec3& operator/= ( const float a ) {
 		for( int i = 0; i < size; ++i ) {
 			vec[i]/=a;
 		}	
 		return *this;
    	}
+	
+	inline float length() {
+		return sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
+	}
+
+	inline vec3& normalize() {
+		*this/=length();
+		return *this;	
+	}
 
 	inline void toString ( char in[], bool integer = false ) {
 		char str[STR_LEN];
@@ -159,6 +187,10 @@ inline vec3 operator+ ( vec3 a, const vec3& b ) {
 
 inline float operator* ( vec3 a, const vec3& b ) {
 	return a*=b;
+}
+
+inline vec3 operator& ( vec3 a, const vec3& b ) {
+	return a&=b;
 }
 
 //////////////////////////////////////////////////
@@ -213,6 +245,15 @@ struct vec4 {
 		}	
 		return *this;
    	}
+
+	inline float length() {
+		return sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2] + vec[3]*vec[3]);
+	}
+
+	inline vec4& normalize() {
+		*this/=length();
+		return *this;	
+	}
    	
 	inline void toString ( char in[], bool integer = false  ) {
 		char str[STR_LEN];
