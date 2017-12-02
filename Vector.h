@@ -56,6 +56,13 @@ struct vec2 {
 		return *this;
 	}
 
+	inline vec2& operator-= ( const vec2& a ) { 
+		for( int i = 0; i < size; ++i ) {
+			vec[i]-=a.vec[i];
+		}
+		return *this;
+	}
+
 	inline float operator*= ( const vec2& a ) {
 		float dot = 0;
 		for( int i = 0; i < size; ++i ) {
@@ -93,6 +100,10 @@ struct vec2 {
 
 inline vec2 operator+ ( vec2 a, const vec2& b ) {
 		return a+=b;
+}
+
+inline vec2 operator- ( vec2 a, const vec2& b ) {
+		return a-=b;
 }
 
 inline float operator* ( vec2 a, const vec2& b ) {
@@ -133,6 +144,13 @@ struct vec3 {
 	inline vec3& operator+= ( const vec3& a ) { 
 		for( int i = 0; i < size; ++i ) {
 			vec[i]+=a.vec[i];
+		}
+		return *this;	
+	}
+
+	inline vec3& operator-= ( const vec3& a ) { 
+		for( int i = 0; i < size; ++i ) {
+			vec[i]-=a.vec[i];
 		}
 		return *this;	
 	}
@@ -185,6 +203,10 @@ inline vec3 operator+ ( vec3 a, const vec3& b ) {
 		return a+=b;
 }
 
+inline vec3 operator- ( vec3 a, const vec3& b ) {
+		return a-=b;
+}
+
 inline float operator* ( vec3 a, const vec3& b ) {
 	return a*=b;
 }
@@ -231,6 +253,13 @@ struct vec4 {
 		return *this;	
 	}
 
+	inline vec4& operator-= ( const vec4& a ) { 
+		for( int i = 0; i < size; ++i ) {
+			vec[i]-=a.vec[i];
+		}
+		return *this;	
+	}
+
 	inline float operator*= ( const vec4& a ) {
 		float dot = 0;
 		for( int i = 0; i < size; ++i ) {
@@ -268,6 +297,10 @@ struct vec4 {
 
 inline vec4 operator+ ( vec4 a, const vec4& b ) {
 		return a+=b;
+}
+
+inline vec4 operator- ( vec4 a, const vec4& b ) {
+		return a-=b;
 }
 
 inline float operator* ( vec4 a, const vec4& b ) {

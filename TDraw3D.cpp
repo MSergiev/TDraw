@@ -92,35 +92,35 @@ void TDraw3D::projectionMatrix() {
 		{0, 0, (near+far)/nmf, 2*far*near/nmf},
 		{0, 0, -1, 0}
 	};
-
-#if 0
-	float r = 10, l = -r;
-	float t = 10, b = -t;
-	float n = near, f = far;
-	
-	pM = {
-		{2/(r-l), 0, 0, 0},
-		{0, 2/(t-b), 0, 0},
-		{0, 0, 2/(f-n), 0},
-		{-(r-l)/(r+l), -(t+b)/(t-b), -(f+n)/(f-n), 1}
-	};
-#endif
 }
 
-void TDraw3D::FPV() {
-	float cP = cos(cFPSV[0]);
-	float sP = sin(cFPSV[0]);
-	float cY = cos(cFPSV[1]);
-	float sY = sin(cFPSV[1]);
+void TDraw3D::FPV( vec3 eye, float pitch, float yaw ) {
+	float cP = cos(pitch);
+	float sP = sin(pitch);
+	float cY = cos(yaw);
+	float sY = sin(yaw);
 
 	v x = { cY, 0, -sY };
 	v y = { sY*sP, cP, cY*sP };
 	v z = { sY*cP, -sP, cP*cY };
 
 	vM = {
-		{x[0],x[1],x[2], -(x*cPV)},
-		{y[0],y[1],y[2], -(y*cPV)},
-		{z[0],z[1],z[2], -(z*cPV)},
+		{x[0],x[1],x[2], -(x*eye)},
+		{y[0],y[1],y[2], -(y*eye)},
+		{z[0],z[1],z[2], -(z*eye)},
+		{0,0,0,1}
+	};
+}
+
+void TDraw3D::lookAt( vec3 eye, vec3 target, vec3 up ) {
+	vec3 z = (eye-target).normalize();
+	vec3 x = (up&z).normalize();
+	vec3 y = z&x;
+
+	vM = {
+		{x[0],x[1],x[2], -(x*eye)},
+		{y[0],y[1],y[2], -(y*eye)},
+		{z[0],z[1],z[2], -(z*eye)},
 		{0,0,0,1}
 	};
 }
@@ -143,7 +143,7 @@ void TDraw3D::init() {
 	ratio = (float)GetScreenWidth()/GetScreenHeight();
 	modelMatrix( tV, sV, rV );
 	projectionMatrix();
-	FPV();	
+	FPV( cPV, cFPSV[0], cFPSV[1] );
 
 	mvpM = pM*vM*mM;
 }
@@ -153,7 +153,8 @@ void TDraw3D::draw() {
 	if( aspect != ratio ) projectionMatrix();
 	ratio = aspect;
     modelMatrix( tV, sV, rV );
-	FPV();
+	FPV( cPV, cFPSV[0], cFPSV[1] );
+	//lookAt( cPV, ORIGIN, OY );
 
 	mvpM = pM*vM*mM;
 	
@@ -182,7 +183,8 @@ void TDraw3D::triangle(const v& a, const v& b, const v& c, char color) {
 
 void TDraw3D::draw3DLine( const v& a, const v& b, char color ) {
 	v a1 = getPixel(a), b1 = getPixel(b);
-	TDraw::drawLine( a1[0], a1[1], b1[0], b1[1], color );	
+	char c1 = (cPV[2]-a[2])/(far-cPV[2])*7, 	c2 = (cPV[2]-b[2])/(far-cPV[2])*7;
+	TDraw::drawLine( a1[0], a1[1], b1[0], b1[1], c1, c2 );	
 }
 
 void TDraw3D::drawCube(const v* cube, char color) {

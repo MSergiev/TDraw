@@ -11,13 +11,12 @@ void TDraw::init() {
     nodelay(stdscr, TRUE);
 	keypad(stdscr, TRUE);
 
-	init_color(COLOR_BLACK, 0, 0, 0);
-
-	init_pair(1, COLOR_RED, COLOR_BLACK);
-	init_pair(2, COLOR_GREEN, COLOR_BLACK);
-	init_pair(3, COLOR_BLUE, COLOR_BLACK);
-	init_pair(4, COLOR_WHITE, COLOR_BLACK);
-
+	for( short i = 0; i < 8; ++i ) {
+		short v = ((float)i/7)*1000;
+		init_color(i, v, v, v);
+		init_pair(i, i, 0);
+	}
+	
 	status1 = (char*)malloc(64*sizeof(char));
 	status2 = (char*)malloc(64*sizeof(char));
     
@@ -102,7 +101,7 @@ void TDraw::drawRect ( int x, int y, int w, int h, char color ) {
 	drawPolygon( rectX, rectY, 4, color ); 
 }
 
-void TDraw::drawLine ( int x1, int y1, int x2, int y2, char color ) {
+void TDraw::drawLine ( int x1, int y1, int x2, int y2, char color, char color2 ) {
 	int w = x2-x1, h = y2-y1;
 	int dx1 = 0, dy1 = 0, dx2 = 0, dy2 = 0;
 	if( w < 0 ) dx1 = -1; else if( w > 0 ) dx1 = 1;
@@ -120,8 +119,12 @@ void TDraw::drawLine ( int x1, int y1, int x2, int y2, char color ) {
 
 	int num = longest/2;
 
+	if(color2 < 0) color2 = color;
+	int gradient = color;
+
 	for( int i = 0; i <= longest; ++i ) {
-		drawPixel( x1, y1, color);
+		gradient = (float)i/longest*std::abs(color2-color) + color;
+		drawPixel( x1, y1, gradient);
 		num += shortest;
 		if( num >= longest ) {
 			num -= longest;
@@ -141,9 +144,17 @@ void TDraw::drawCircle ( int x, int y, int r, double precision, char color ) {
 
 void TDraw::drawPixel ( int x, int y, char color ) {
 	if( x < 0 || x > width*SYM_WIDTH-1 || y < 0 || y > height*SYM_HEIGHT-1) return;
-
 	int id = x/SYM_WIDTH + (y/SYM_HEIGHT)*width;
+
+#ifdef ASCII_MODE
+	if( y%2==0 ) {
+		screen[id]  = ( screen[id]=='.' ? ':' : '\'' );
+	} else {
+		screen[id]  = ( screen[id]=='\'' ? ':' : '.' );
+	}
+#else
 	screen[id] |= PIXEL_MATRIX[y%SYM_HEIGHT][x%SYM_WIDTH];
+#endif
 	color_data[id] = color;
 }
 

@@ -87,7 +87,8 @@ public:
     void modelMatrix( const v& t, const v& s, const v& r );
     void viewMatrix( const v& r, const v& u, const v& f, const v& p );
     void projectionMatrix();
-	void FPV();
+	void lookAt( vec3 eye, vec3 target, vec3 up );
+	void FPV( vec3 eye, float pitch, float yaw );
 
     void move( float x, float y, float z );
 	void rotate( float x, float y, float z ); 

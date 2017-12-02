@@ -11,8 +11,16 @@
 #include <locale.h>
 
 // Symbol pixel dimensions
+
+//#define ASCII_MODE
+
+#ifdef ASCII_MODE
+#define SYM_WIDTH 1
+#define SYM_HEIGHT 2
+#else
 #define SYM_WIDTH 2
 #define SYM_HEIGHT 4
+#endif
 
 // Variables
 
@@ -60,7 +68,7 @@ public:
 
 	/** Object drawing function */
 	virtual void drawPixel ( int x, int y, char color );
-	virtual void drawLine ( int x1, int y1, int x2, int y2, char color );
+	virtual void drawLine ( int x1, int y1, int x2, int y2, char color, char color2 = -1 );
 	virtual void drawCircle ( int x, int y, int r, double precision , char color );
 	virtual void drawRect ( int x, int y, int w, int h, char color );
 	virtual void drawPolygon ( int* x, int* y, int sides, char color );
