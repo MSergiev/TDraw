@@ -11,10 +11,18 @@ int main() {
 	mat2 a;
 
 	a = {
-		{1,2},
-		{2,3}
+		{7,1},
+		{8,4}
 	};
 
+    mat3 b;
+    
+    b = {
+        {2,3,6},
+        {7,1,9},
+        {8,4,1}
+    };
+    
 	mat4 m, n;
 	
 	m = { 
@@ -122,6 +130,52 @@ int main() {
 	memset(str, 0, sizeof(str));
 	(v1.normalize()).toString(str);
 	std::cout << str << std::endl << std::endl;
-	
+    
+    std::cout << "2X2 Reduction" << std::endl;
+	memset(str, 0, sizeof(str));
+	std::cout << a.reduce(0,1) << std::endl << std::endl;   
+    
+    std::cout << "3X3 Reduction" << std::endl;
+	memset(str, 0, sizeof(str));
+	(b.reduce(0,1)).toString(str,1);
+	std::cout << str << std::endl << std::endl;
+    
+    std::cout << "4X4 Reduction" << std::endl;
+	memset(str, 0, sizeof(str));
+	(m.reduce(0,1)).toString(str,1);
+	std::cout << str << std::endl << std::endl;
+    
+	std::cout << "2X2 Determinant" << std::endl;
+	memset(str, 0, sizeof(str));
+	std::cout << a.determinant() << std::endl << std::endl;
+    
+	std::cout << "3X3 Determinant" << std::endl;
+	memset(str, 0, sizeof(str));
+	std::cout << b.determinant() << std::endl << std::endl;
+    
+	std::cout << "4X4 Determinant" << std::endl;
+	memset(str, 0, sizeof(str));
+	std::cout << m.determinant() << std::endl << std::endl;
+	    
+    std::cout << "2X2 Inverse" << std::endl;
+	memset(str, 0, sizeof(str));
+	(a.inverse()).toString(str);
+	std::cout << str << std::endl << std::endl;
+	    
+    std::cout << "3X3 Inverse" << std::endl;
+	memset(str, 0, sizeof(str));
+	(b.inverse()).toString(str);
+	std::cout << str << std::endl << std::endl;
+    
+    std::cout << "4X4 Inverse" << std::endl;
+	memset(str, 0, sizeof(str));
+	(m.inverse()).toString(str);
+	std::cout << str << std::endl << std::endl;
+    
+    std::cout << "4X4 Mat*Inverse" << std::endl;
+	memset(str, 0, sizeof(str));
+	((m.inverse())*m).toString(str,1);
+	std::cout << str << std::endl << std::endl;
+    
 	return 0;
 }

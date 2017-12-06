@@ -10,45 +10,87 @@
 
 typedef unsigned char uint8;
 
+// Swap two elements
 inline void swap( float& a, float& b ) {
 	float tmp = a; 
 	a=b; 
 	b=tmp; 
 };
 
+// Convert degrees to radians
 inline float radians( float deg ) {
     return deg*PI/180.0f;
 }
+
+// Map a value from one range to another
+inline float mapTo( float val, float in, float out, float nIn, float nOut ) {
+    float in_min, in_max, out_min, out_max;
+    bool in_rev = (in<out), out_rev = (nIn<nOut);
+    
+    if(in_rev) { in_min = in; in_max = out; } else { in_min = out; in_max = in; }
+    if(out_rev) { out_min = nIn; out_max = nOut; } else { out_min = nOut; out_max = nIn; }
+    
+    float in_len = in_max - in_min;
+    float out_len = out_max - out_min;
+    
+    float tmp = val;
+    tmp -= in_min;
+    if(in_rev) tmp = in_len - tmp;
+    tmp /= in_len;
+    tmp *= out_len;
+    if(out_rev) tmp = out_len - tmp;
+    tmp += out_min;
+    
+    if(tmp < out_min) tmp = out_min;
+    if(tmp > out_max) tmp = out_max;
+    
+    return tmp;
+}
+
 
 //////////////////////////////////////////////////
 
 /** VEC2 */
 struct vec2 {
+    // Constant size
     static const uint8 size = 2;
     
+    // Array
 	float vec[size];
 
+    // Default constructor
 	vec2() {
 		memset( vec, 0, sizeof(vec) );	
 	}
 
+	// Braced constructor
 	vec2( float x, float y ) { 
 		vec[0] = x;	
 		vec[1] = y;
 	}
 	
+	// Uniform constructor
+	vec2( float a ) { 
+		vec[0] = a;
+		vec[1] = a;
+	}
+	
+	// Copy operator
 	inline void operator= ( const vec2& a ) { 
 		memcpy(vec,a.vec,sizeof(vec)); 
 	}
 
+	// Square brace operator
 	inline float& operator[] ( uint8 index ) { 
 		return vec[index]; 
 	}
 	
+	// Const square brace operator
 	inline float operator[] ( uint8 index ) const { 
 		return vec[index]; 
 	}
 
+	// Addition operator
 	inline vec2& operator+= ( const vec2& a ) { 
 		for( int i = 0; i < size; ++i ) {
 			vec[i]+=a.vec[i];
@@ -56,6 +98,7 @@ struct vec2 {
 		return *this;
 	}
 
+	// Subtraction operator
 	inline vec2& operator-= ( const vec2& a ) { 
 		for( int i = 0; i < size; ++i ) {
 			vec[i]-=a.vec[i];
@@ -63,6 +106,7 @@ struct vec2 {
 		return *this;
 	}
 
+	// Multiplication operator
 	inline float operator*= ( const vec2& a ) {
 		float dot = 0;
 		for( int i = 0; i < size; ++i ) {
@@ -70,7 +114,8 @@ struct vec2 {
 		}	
 		return dot;
    	}
-   	
+
+   	// Division operator
     inline vec2& operator/= ( const float a ) {
 		for( int i = 0; i < size; ++i ) {
 			vec[i]/=a;
@@ -78,15 +123,18 @@ struct vec2 {
 		return *this;
    	}
 
+   	// Vector length
 	inline float length() {
 		return sqrt(vec[0]*vec[0] + vec[1]*vec[1]);
 	}
 
+	// Normalized vector
 	inline vec2& normalize() {
 		*this/=length();
 		return *this;	
 	}
 
+	// String formatter
 	inline void toString ( char in[], bool integer = false ) {
 		char str[STR_LEN];
 		memset( str, 0, sizeof(str) );        
@@ -98,14 +146,17 @@ struct vec2 {
 	}
 };
 
+// Binary addition operator
 inline vec2 operator+ ( vec2 a, const vec2& b ) {
 		return a+=b;
 }
 
+// Binary subtraction operator
 inline vec2 operator- ( vec2 a, const vec2& b ) {
 		return a-=b;
 }
 
+// Binary multiplication operator
 inline float operator* ( vec2 a, const vec2& b ) {
 	return a*=b;
 }
@@ -127,6 +178,12 @@ struct vec3 {
 		vec[0] = x;	
 		vec[1] = y;	
 		vec[2] = z;	
+	}
+	
+	vec3( float a ) { 
+		vec[0] = a;	
+		vec[1] = a;	
+		vec[2] = a;	
 	}
 	
 	inline void operator= ( const vec3& a ) { 
@@ -232,6 +289,13 @@ struct vec4 {
 		vec[1] = y;	
 		vec[2] = z;	
 		vec[3] = w;	
+	}
+	
+	vec4( float a ) { 
+		vec[0] = a;	
+		vec[1] = a;	
+		vec[2] = a;	
+		vec[3] = a;	
 	}
 	
 	inline void operator= ( const vec4& a ) { 
