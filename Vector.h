@@ -115,6 +115,14 @@ struct vec2 {
 		return dot;
    	}
 
+   	// Multiplication operator
+    inline vec2& operator*= ( const float a ) {
+		for( int i = 0; i < size; ++i ) {
+			vec[i]*=a;
+		}	
+		return *this;
+   	}
+
    	// Division operator
     inline vec2& operator/= ( const float a ) {
 		for( int i = 0; i < size; ++i ) {
@@ -158,6 +166,11 @@ inline vec2 operator- ( vec2 a, const vec2& b ) {
 
 // Binary multiplication operator
 inline float operator* ( vec2 a, const vec2& b ) {
+	return a*=b;
+}
+
+// Binary multiplication operator
+inline vec2 operator* ( vec2 a, const float b ) {
 	return a*=b;
 }
 
@@ -219,6 +232,20 @@ struct vec3 {
 		}	
 		return dot;
    	}
+   	
+	inline vec3& operator*= ( const float a ) {
+		for( int i = 0; i < size; ++i ) {
+			vec[i] *= a;
+		}	
+		return *this;
+   	}
+
+    inline vec3& operator/= ( const float a ) {
+		for( int i = 0; i < size; ++i ) {
+			vec[i]/=a;
+		}	
+		return *this;
+   	}
 
 	inline vec3& operator&= ( const vec3& a ) {
 		vec3 v;
@@ -228,13 +255,6 @@ struct vec3 {
 		*this = v;
 		return *this;
 	}
-
-    inline vec3& operator/= ( const float a ) {
-		for( int i = 0; i < size; ++i ) {
-			vec[i]/=a;
-		}	
-		return *this;
-   	}
 	
 	inline float length() {
 		return sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
@@ -265,6 +285,10 @@ inline vec3 operator- ( vec3 a, const vec3& b ) {
 }
 
 inline float operator* ( vec3 a, const vec3& b ) {
+	return a*=b;
+}
+
+inline vec3 operator* ( vec3 a, const float b ) {
 	return a*=b;
 }
 
@@ -332,6 +356,13 @@ struct vec4 {
 		return dot;
    	}
    	
+    inline vec4& operator*= ( const float a ) {
+		for( int i = 0; i < size; ++i ) {
+			vec[i]*=a;
+		}	
+		return *this;
+   	}
+   	
     inline vec4& operator/= ( const float a ) {
 		for( int i = 0; i < size; ++i ) {
 			vec[i]/=a;
@@ -368,6 +399,10 @@ inline vec4 operator- ( vec4 a, const vec4& b ) {
 }
 
 inline float operator* ( vec4 a, const vec4& b ) {
+	return a*=b;
+}
+
+inline vec4 operator* ( vec4 a, const float b ) {
 	return a*=b;
 }
 

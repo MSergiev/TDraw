@@ -6,14 +6,10 @@
 
 #include "Matrix.h"
 
-#define ORIGIN v(0,0,0)
-#define OX v(1,0,0)
-#define OY v(0,1,0)
-#define OZ v(0,0,1)
-
-typedef vec4 V; // World-space vector
-typedef vec3 v; // Screen-space vector
-typedef mat4 M; // Matrix
+#define ORIGIN vec4(0,0,0,1)
+#define OX vec4(1,0,0,1)
+#define OY vec4(0,1,0,1)
+#define OZ vec4(0,0,1,1)
 
 struct Model {
     tinyobj::attrib_t attrib;
@@ -23,15 +19,15 @@ struct Model {
 };
 
 // Cube vertices
-const static V cubeVertices[8] = {
-    V(-1,-1, 1, 1),
-    V( 1,-1, 1, 1),
-    V( 1, 1, 1, 1),
-    V(-1, 1, 1, 1),
-    V(-1,-1,-1, 1),
-    V( 1,-1,-1, 1),
-    V( 1, 1,-1, 1),
-    V(-1, 1,-1, 1)
+const static vec4 cubeVertices[8] = {
+    vec4(-1,-1, 1, 1), // FTL
+    vec4( 1,-1, 1, 1), // FTR
+    vec4( 1, 1, 1, 1), // FBR
+    vec4(-1, 1, 1, 1), // FBL
+    vec4(-1,-1,-1, 1), // RTL
+    vec4( 1,-1,-1, 1), // RTR
+    vec4( 1, 1,-1, 1), // RBR
+    vec4(-1, 1,-1, 1)  // RBL
 };
 
 // Cube vertex drawing order
@@ -47,9 +43,9 @@ const static uint8_t cubeOrder[36] = {
 // Cube edge drawing order
 const static uint8_t cubeOutline[24] = {
     0,1, 0,3, 0,4, 
-    1,5, 1,2,
-    2,6, 2,3, 3,7,
-    4,5, 4,7, 5,6, 6,7
+    1,5, 1,2, 2,6, 
+    2,3, 3,7, 4,5, 
+    4,7, 5,6, 6,7
 };
 
 
@@ -59,57 +55,68 @@ class TDraw3D : public TDraw {
 private:
 
     // Transformation data
-    M sM, tM, rM, mM, vM, pM, mvpM;
+    mat4 sM, tM, rM, mM, vM, pM, mvpM, vpM;
+    mat4 isM, itM, irM, imM, ivM, ipM, imvpM, ivpM;
     float uS, uT, uR; // Uniform transformation
-    v sV; // Scalar vector
-    v tV; // Translation vector
-    v rV; // Rotation vector
+    vec4 sV; // Scalar vector
+    vec4 tV; // Translation vector
+    vec4 rV; // Rotation vector
 
-    v cRV; // Camera right vector
-    v cUV; // Camera up vector
-    v cFV; // Camera front vector
-    v cPV; // Camera position vector
+    vec4 cRV; // Camera right vector
+    vec4 cUV; // Camera up vector
+    vec4 cFV; // Camera front vector
+    vec4 cPV; // Camera position vector
 
-	V vpV; // Viewport vector
-
-    v cFPSV;
+    vec4 cFPSV; // Camera rotation vector
 
     float fov, near, far, ratio;
+    int amb;
+    
+    // Screen pixel depth
+	float* zDepth;
     
 public:
     
 	TDraw3D( float fov = 90.0f, float near = 0.01, float far = 100 );
 	virtual ~TDraw3D();
 
-    void translationMatrix( M& m, const v& v );
-    void scaleMatrix( M& m, const v& v );
-    void rotationMatrix( M& m, const v& v );
-    void modelMatrix( const v& t, const v& s, const v& r );
-    void viewMatrix( const v& r, const v& u, const v& f, const v& p );
+    void translationMatrix( mat4& m, const vec4& v );
+    void scaleMatrix( mat4& m, const vec4& v );
+    void rotationMatrix( mat4& m, const vec4& v );
+    void modelMatrix( const vec4& t, const vec4& s, const vec4& r );
+    void viewMatrix( const vec4& r, const vec4& u, const vec4& f, const vec4& p );
+    void viewportMatrix( const float x, const float y, const float w, const float h );
     void projectionMatrix();
-	void lookAt( vec3 eye, vec3 target, vec3 up );
-	void FPV( vec3 eye, float pitch, float yaw );
+	void lookAt( vec4 eye, vec4 target, vec4 up );
+	void FPV( vec4 eye, float pitch, float yaw );
 
     void move( float x, float y, float z );
 	void rotate( float x, float y, float z ); 
 
 	virtual void init();
     virtual void draw();
-    
-    void cube( const v& c, float r, char color = 1 );
-    void sphere( const v& c, float r, float prec = 0.2, char color = 1 );
-    void triangle( const v& a, const v& b, const v& c, char color = 1 );
+    virtual void drawLine ( const vec4& a, const vec4& b, char color = 1 );
    
-	void draw3DLine( const v& a, const v& b, char color );	
-    void drawCube( const v* cube, char color = 1 ) ;
-    void drawSphere( const v& c, float r, float prec = 0.2, char color = 1 );
-    void drawConic( const v& p, float h, float r1, float r2, char color );
-	void drawCone( const v& p, float h, float r, char color );
-	void drawCylinder( const v& dir, float h, float r, char color );
-	void drawTriangle( v a, v b, v c, char color = 1 );
+	void draw3DLine( vec4 a, vec4 b, char color = 1 );
+    void drawCube( const vec4& t, const vec4& s, const vec4& r, bool fill = 0, char color = 1 ) ;
+    void drawSphere( const vec4& c, float r, float prec = 0.2, char color = 1 );
+    void drawConic( const vec4& p, float h, float r1, float r2, char color = 1 );
+	void drawCone( const vec4& p, float h, float r, char color = 1 );
+	void drawCylinder( const vec4& dir, float h, float r, char color = 1 );
+	void drawTriangle( vec4 a, vec4 b, vec4 c, bool fill = 0, char color = 1 );
+    void fillTriangle( vec4* t, vec4* l, vec4* r, char col );
 
-    v getPixel( const v& p );
-    void setPixel( const v& v, char color = 1);
+    bool isInFrustum( const vec4& a );
+    
+    void ModelToClip( vec4& a );
+    void ScreenToWorld( vec4& a );
+    void ClipToScreen( vec4& a );
+    
+    void clipLine( vec4& a, vec4& b );
+    vec4 getPixel( vec4 p );
+    bool setPixel( vec4 v, char color = 1);
+    
+    void dumpTransformation( vec4 p = vec4(1,1,1,1) );
 
 	void loadFromFile( Model& model, std::string path );
 	void drawObject( Model& model );

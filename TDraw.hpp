@@ -9,6 +9,7 @@
 #include <wctype.h>
 #include <wchar.h>
 #include <locale.h>
+#include "Vector.h"
 
 // Symbol pixel dimensions
 
@@ -76,6 +77,9 @@ public:
 
 	int GetScreenHeight() const;
 	int GetScreenWidth() const;
+    
+    void Status1( char str[50] );
+    void Status2( char str[50] );
 };
 
 #endif /** TDRAW_H_ */

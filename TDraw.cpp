@@ -47,12 +47,16 @@ void TDraw::draw() {
 	wchar_t block[2] = {0, '\0'};
 	for(int i = 0; i < height*width; ++i) {
 		block[0] = screen[i];
-		//init_color(COLOR_GREEN, i%1000, i%1000, i%1000);
 		attron(COLOR_PAIR(color_data[i]));
 		mvaddwstr(i/width, i%width, block);
 		attroff(COLOR_PAIR(color_data[i]));
 	}
 
+    attron(COLOR_PAIR(7));
+    mvaddstr(height-2, (width-strlen(status1))/2, status1);
+    mvaddstr(height-1, (width-strlen(status2))/2, status2);
+    attroff(COLOR_PAIR(7));
+	
     free(screen);
     free(color_data);
     refresh();
@@ -123,7 +127,7 @@ void TDraw::drawLine ( int x1, int y1, int x2, int y2, char color, char color2 )
 	int gradient = color;
 
 	for( int i = 0; i <= longest; ++i ) {
-		gradient = (float)i/longest*std::abs(color2-color) + color;
+		gradient = mapTo( i, 0, longest, color, color2 );
 		drawPixel( x1, y1, gradient);
 		num += shortest;
 		if( num >= longest ) {
@@ -136,6 +140,7 @@ void TDraw::drawLine ( int x1, int y1, int x2, int y2, char color, char color2 )
 		}
 	}
 }
+
 void TDraw::drawCircle ( int x, int y, int r, double precision, char color ) {
 	for( float a = 0; a < 2*M_PI; a+=precision ) {
 		drawPixel( x + r*cos(a), y + r*sin(a), color );
@@ -164,4 +169,16 @@ int TDraw::GetScreenHeight() const {
 
 int TDraw::GetScreenWidth() const {
 	return screen_width;
+}
+
+void TDraw::Status1( char str[50] ) {
+    free(status1);
+    status1 = (char*)malloc(50*sizeof(char));
+    strcat(status1, str);
+}
+
+void TDraw::Status2( char str[50] ) {
+    free(status2);
+    status2 = (char*)malloc(50*sizeof(char));
+    strcat(status2, str);
 }

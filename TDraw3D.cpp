@@ -5,26 +5,27 @@ TDraw3D::TDraw3D( float fov, float near, float far ) {
     this->fov = fov;
     this->near = near;
     this->far = far;
-	this->ratio = 0.0f;
+    this->ratio = 0.0f;
+    this->amb = 10;
 
     uS = 1; uT = 0; uR = 0;
-    sV = { uS, uS, uS };
-    tV = { uT, uT, uT };
-    rV = { uR, uR, uR };
+    sV = { uS, uS, uS, 0.0f };
+    tV = { uT, uT, uT, 0.0f };
+    rV = { uR, uR, uR, 0.0f };
     
-    cRV = v( 1.0f, 0.0f, 0.0f );
-    cUV = v( 0.0f, 1.0f, 0.0f );
-    cFV = v( 0.0f, 0.0f, 1.0f );
-    cPV = v( 0.0f, 0.0f, -5.0f );
+    cRV = vec4( 1.0f, 0.0f, 0.0f, 0.0f );
+    cUV = vec4( 0.0f, 1.0f, 0.0f, 0.0f );
+    cFV = vec4( 0.0f, 0.0f, 1.0f, 0.0f );
+    cPV = vec4( 0.0f, 0.0f, -5.0f, 1.0f );
 
-    cFPSV = v( 0.0f, 0.0f, 0.0f );
+    cFPSV = vec4( 0.0f, 0.0f, 0.0f, 0.0f );
 }
 
 TDraw3D::~TDraw3D() {
 }
 
-void TDraw3D::translationMatrix( M& m, const v& v ) {
-	M mat = {
+void TDraw3D::translationMatrix( mat4& m, const vec4& v ) {
+	mat4 mat = {
 		{1,0,0,v[0]},
 		{0,1,0,v[1]},
 		{0,0,1,v[2]},
@@ -33,8 +34,8 @@ void TDraw3D::translationMatrix( M& m, const v& v ) {
 	m *= mat;
 }
 
-void TDraw3D::scaleMatrix( M& m, const v& v ) {
-	M mat = {
+void TDraw3D::scaleMatrix( mat4& m, const vec4& v ) {
+	mat4 mat = {
 		{v[0],0,0,0},
 		{0,v[1],0,0},
 		{0,0,v[2],0},
@@ -43,36 +44,30 @@ void TDraw3D::scaleMatrix( M& m, const v& v ) {
 	m *= mat;
 }
 
-void TDraw3D::rotationMatrix( M& m, const v & v ) {
+void TDraw3D::rotationMatrix( mat4& m, const vec4& v ) {
 	float CX = cos(v[0]), SX = sin(v[0]);
 	float CY = cos(v[1]), SY = sin(v[1]);
 	float CZ = cos(v[2]), SZ = sin(v[2]);
-
-	/*M mat = {
-		{CY*CZ, SX*SY*CZ+CX*SZ, -CX*SY*CZ+SX*SZ, 0},
-		{-CY*SZ, -SX*SY*SZ+CX*CZ, CX*SY*SZ+SX*CZ, 0},
-		{SY, -SX*CY, CX*CY, 0},
-		{0,0,0,1} 
-	};
-	m *= mat;
-	*/
-	M mat = {
+    
+	mat4 mat = {
 		{CY*CZ,-CY*SZ,SY,0},
 		{SX*SY*CZ+CX*SZ,-SX*SY*SZ+CX*CZ,-SX*CY,0},
 		{-CX*SY*CZ+SX*SZ,CX*SY*SZ+SX*CZ,CX*CY,0},
 		{0,0,0,1} 
 	};
-	m *= mat;
+    m *= mat;
 }
 
-void TDraw3D::modelMatrix(const v & t, const v & s, const v & r) {
-	translationMatrix( tM, t );
-	scaleMatrix( sM, s );
-	rotationMatrix( rM, r );
-	mM = tM*rM*sM;
+void TDraw3D::modelMatrix(const vec4& t, const vec4& s, const vec4& r) {
+    mM = mat4();
+	scaleMatrix( mM, s );
+	rotationMatrix( mM, r );
+	translationMatrix( mM, t );
+    
+    imM = mM.inverse();
 }
 
-void TDraw3D::viewMatrix(const v& r, const v& u, const v& f, const v& p) {
+void TDraw3D::viewMatrix(const vec4& r, const vec4& u, const vec4& f, const vec4& p) {
 	vM = {
 		{r[0],u[0],f[0],p[0]},
 		{r[1],u[1],f[1],p[1]},
@@ -81,48 +76,73 @@ void TDraw3D::viewMatrix(const v& r, const v& u, const v& f, const v& p) {
 	};
 }
 
+void TDraw3D::viewportMatrix( const float x, const float y, const float w, const float h ) {
+    float hw = w/2, fw = (w+x)/2;
+    float hh = h/2, fh = (h+y)/2;
+    float hd = (far-near)/2, fd = (far+near)/2;
+    
+    vpM = {
+        {hw,0,0,fw},
+        {0,hh,0,fh},
+        {0,0,hd,fd},
+        {0,0,0,1}
+    };
+    
+    ivpM = vpM.inverse();
+}
+
 void TDraw3D::projectionMatrix() {
 	float yScale = 1/tan(radians(fov/2));
-	float xScale = yScale / ratio;
-	float nmf = near-far;
+	float xScale = yScale/ratio;
+	float fmn = far-near;
 
 	pM = {
 		{xScale, 0, 0, 0},
 		{0, yScale, 0, 0},
-		{0, 0, (near+far)/nmf, 2*far*near/nmf},
-		{0, 0, -1, 0}
+		{0, 0, (far+near)/fmn, -(2*far*near)/fmn},
+		{0, 0, 1, 0}
 	};
+    
+    ipM = pM.inverse();
 }
 
-void TDraw3D::FPV( vec3 eye, float pitch, float yaw ) {
+void TDraw3D::FPV( vec4 eye, float pitch, float yaw ) {
 	float cP = cos(pitch);
 	float sP = sin(pitch);
 	float cY = cos(yaw);
 	float sY = sin(yaw);
 
-	v x = { cY, 0, -sY };
-	v y = { sY*sP, cP, cY*sP };
-	v z = { sY*cP, -sP, cP*cY };
+    vec3 e(eye[0],eye[1],eye[2]);
+	vec3 x = { cY, 0, -sY };
+	vec3 y = { sY*sP, cP, cY*sP };
+	vec3 z = { sY*cP, -sP, cP*cY };
 
 	vM = {
-		{x[0],x[1],x[2], -(x*eye)},
-		{y[0],y[1],y[2], -(y*eye)},
-		{z[0],z[1],z[2], -(z*eye)},
+		{x[0],x[1],x[2], -(x*e)},
+		{y[0],y[1],y[2], -(y*e)},
+		{z[0],z[1],z[2], -(z*e)},
 		{0,0,0,1}
 	};
+    
+    ivM = vM.inverse();
 }
 
-void TDraw3D::lookAt( vec3 eye, vec3 target, vec3 up ) {
-	vec3 z = (eye-target).normalize();
-	vec3 x = (up&z).normalize();
+void TDraw3D::lookAt( vec4 eye, vec4 target, vec4 up ) {
+    vec3 e(eye[0],eye[1],eye[2]);
+    vec3 t(target[0],target[1],target[2]);
+    vec3 u(up[0],up[1],up[2]);
+	vec3 z = (e-t).normalize();
+	vec3 x = (u&z).normalize();
 	vec3 y = z&x;
 
 	vM = {
-		{x[0],x[1],x[2], -(x*eye)},
-		{y[0],y[1],y[2], -(y*eye)},
-		{z[0],z[1],z[2], -(z*eye)},
+		{x[0],x[1],x[2], -(x*e)},
+		{y[0],y[1],y[2], -(y*e)},
+		{z[0],z[1],z[2], -(z*e)},
 		{0,0,0,1}
 	};
+    
+    ivM = vM.inverse();
 }
 
 void TDraw3D::move( float x, float y, float z ) {
@@ -141,181 +161,413 @@ void TDraw3D::init() {
 	TDraw::init();
 	
 	ratio = (float)GetScreenWidth()/GetScreenHeight();
-	modelMatrix( tV, sV, rV );
+    zDepth = (float*)malloc(GetScreenHeight()*GetScreenWidth()*sizeof(float));
+    for( int i = 0; i < GetScreenHeight()*GetScreenWidth(); ++i ) {
+        zDepth[i] = far;
+    }
+    viewportMatrix( 0, 0, (float)GetScreenWidth(), (float)GetScreenHeight() );
 	projectionMatrix();
 	FPV( cPV, cFPSV[0], cFPSV[1] );
 
-	mvpM = pM*vM*mM;
+// 	mvpM = pM*vM*mM;
+//     imvpM = mvpM.inverse();
 }
 
-void TDraw3D::draw() {
+void TDraw3D::draw() {       
+    for( int i = 0; i < GetScreenHeight()*GetScreenWidth(); ++i ) {
+        zDepth[i] = far;
+    }
 	float aspect = (float)GetScreenWidth()/GetScreenHeight();
+    viewportMatrix( 0, 0, (float)GetScreenWidth(), (float)GetScreenHeight() );
 	if( aspect != ratio ) projectionMatrix();
 	ratio = aspect;
-    modelMatrix( tV, sV, rV );
 	FPV( cPV, cFPSV[0], cFPSV[1] );
 	//lookAt( cPV, ORIGIN, OY );
 
-	mvpM = pM*vM*mM;
-	
+    
+    char str[50];
+    memset(str, 0, sizeof(str));
+    cPV.toString(str);
+    Status1(str);
+    memset(str, 0, sizeof(str));
+    for( int i = 0; i < 8; ++i ) {
+        char sub[10];
+        memset(sub, 0, sizeof(sub));
+        vec4 p = cubeVertices[i];
+        ModelToClip(p);
+        ClipToScreen(p);
+        sprintf(sub, "%.2f ", p[3]);
+        strcat(str, sub);
+    }
+    Status2(str);
+    
+// 	mvpM = pM*vM*mM;
+//     imvpM = mvpM.inverse();
+
 	TDraw::draw();
+    
+    free(zDepth);
+    zDepth = (float*)malloc(GetScreenHeight()*GetScreenWidth()*sizeof(float));
 }
 
-
-void TDraw3D::cube(const v& c, float r, char color) {
-	v tCube[8];
+void TDraw3D::drawLine ( const vec4& a, const vec4& b, char color ) {
+    vec4 a1 = a, b1 = b;
+    int w = b1[0]-a1[0], h = b1[1]-a1[1];
+	int dx1 = 0, dy1 = 0, dx2 = 0, dy2 = 0;
+	if( w < 0 ) dx1 = -1; else if( w > 0 ) dx1 = 1;
+	if( w < 0 ) dx2 = -1; else if( w > 0 ) dx2 = 1;
+	if( h < 0 ) dy1 = -1; else if( h > 0 ) dy1 = 1;
 	
-	for( int i = 0; i < 8; ++i ) {
-		tCube[i] = v(cubeVertices[i][0], cubeVertices[i][1], cubeVertices[i][2]);
-		tCube[i] *= v(r,r,r);
-		tCube[i] += c;
+	int longest = abs(w);
+	int shortest = abs(h);
+
+	if( longest <= shortest ) {
+		std::swap(longest, shortest);
+		if( h < 0 ) dy2 = -1; else if( h > 0 ) dy2 = 1;
+		dx2 = 0;
 	}
-	drawCube( tCube, color );
+
+	int num = longest/2;
+
+	for( int i = 0; i <= longest; ++i ) {
+        if( !setPixel( a1, color ) ) return;
+		num += shortest;
+		if( num >= longest ) { num -= longest; a1[0] += dx1; a1[1] += dy1; }
+		else { a1[0] += dx2; a1[1] += dy2; }
+	}
 }
 
-void TDraw3D::sphere(const v& c, float r, float prec, char color) {
-    drawSphere( c, r, prec, color);
+void TDraw3D::draw3DLine( vec4 a, vec4 b, char color ) {
+    ModelToClip( a ); ModelToClip( b );
+    //clipLine(a, b);
+    ClipToScreen( a ); ClipToScreen( b );
+    drawLine( a, b, color );
+    return;
 }
 
-void TDraw3D::triangle(const v& a, const v& b, const v& c, char color) {
-    drawTriangle( getPixel(a), getPixel(b), getPixel(c), color );
-}
-
-void TDraw3D::draw3DLine( const v& a, const v& b, char color ) {
-	v a1 = getPixel(a), b1 = getPixel(b);
-	char c1 = (cPV[2]-a[2])/(far-cPV[2])*7, 	c2 = (cPV[2]-b[2])/(far-cPV[2])*7;
-	TDraw::drawLine( a1[0], a1[1], b1[0], b1[1], c1, c2 );	
-}
-
-void TDraw3D::drawCube(const v* cube, char color) {
+void TDraw3D::drawCube( const vec4& t, const vec4& s, const vec4& r, bool fill, char color ) {
+    modelMatrix(t, s, r);
+	
 	for( int i = 0; i < 12; ++i ) {
-		draw3DLine( cube[cubeOutline[2*i]], cube[cubeOutline[2*i+1]], color ); 
+        if(fill) drawTriangle( cubeVertices[cubeOrder[3*i]], cubeVertices[cubeOrder[3*i+1]], cubeVertices[cubeOrder[3*i+2]], true, color );
+		else draw3DLine( cubeVertices[cubeOutline[2*i]], cubeVertices[cubeOutline[2*i+1]], color ); 
 	}
 }
 
-void TDraw3D::drawSphere(const  v& c, float r, float prec, char color) {
-	v pOld;
+void TDraw3D::drawSphere(const  vec4& c, float r, float prec, char color) {
+	vec4 pOld;
 	for( float i = 0; i < 2*M_PI; i+=prec ) {
 		for( float j = 0; j < 2*M_PI; j+=prec ){
-			v p = getPixel(v(r*sin(i)*cos(j)+c[0], r*sin(i)*sin(j)+c[1], r*cos(i)+c[2]));
-			//setPixel(p, color);
-			if(j!=0) TDraw::drawLine(p[0], p[1], pOld[0], pOld[1], color);
+            vec4 p(r*sin(i)*cos(j)+c[0], r*sin(i)*sin(j)+c[1], r*cos(i)+c[2], 1);
+			if(j!=0) draw3DLine(p, pOld, color);
 			pOld = p;
 		}
 	}
 }
 
-void TDraw3D::drawConic( const v& p, float h, float r1, float r2, char color ) {
+void TDraw3D::drawConic( const vec4& p, float h, float r1, float r2, char color ) {
 	float tH = (h*r2)/(r1-r2);
 	float rad;
-	v point;
+	vec4 point;
 	for( float i = 0; i < h; i+=0.01 ) {
 		rad = (r2*(tH+i))/(tH+h); 
 		point[2] = i;
 		for( float j = 0; j < 2*M_PI; j+=0.1 ) {
 			point[0] = p[0] + rad*cos(j);
 			point[1] = p[1] + rad*sin(j);
-			v pix = getPixel(point);
-			setPixel(pix, color);
+			setPixel(getPixel(point), color);
 		}
 	}
 }
 
-void TDraw3D::drawCone( const v& p, float h, float r, char color ) {	
+void TDraw3D::drawCone( const vec4& p, float h, float r, char color ) {
 	float rad;
-	v point;
+	vec4 point;
 	for( float i = 0; i < h; i+=0.01 ) {
 		rad = (r*(h-i))/h; 
 		point[2] = i;
 		for( float j = 0; j < 2*M_PI; j+=0.1 ) {
 			point[0] = p[0] + rad*cos(j);
 			point[1] = p[1] + rad*sin(j);
-			v pix = getPixel(point);
-			setPixel(pix, color);
+			setPixel(getPixel(point), color);
 		}
 	}
 }
 
-void TDraw3D::drawCylinder( const v& p, float h, float r, char color ) {
-	v point;
+void TDraw3D::drawCylinder( const vec4& p, float h, float r, char color ) {
+	vec4 point;
 	for( float i = 0; i < h; i+=0.01 ) {
 		point[2] = i;
 		for( float j = 0; j < 2*M_PI; j+=0.1 ) {
 			point[0] = p[0] + r*cos(j);
 			point[1] = p[1] + r*sin(j);
-			v pix = getPixel(point);
-			setPixel(pix, color);
+			setPixel(getPixel(point), color);
 		}
 	}
 }
 
-void TDraw3D::drawTriangle(v a, v b, v c, char color) {
-// 	if(fill){
-// 		v* s[3];
-// 		if(a[1]<b[1]){
-// 			if(a[1]<c[1]){
-// 				s[0]=&a;
-// 				if(b[1]<c[1]){s[1]=&b; s[2]=&c;}
-// 			   	else {s[1]=&c; s[2]=&b;}
-// 			} else {
-// 				s[0]=&c;
-// 				if(b[1]<a[1]){s[1]=&b; s[2]=&a;}
-// 			   	else {s[1]=&a; s[2]=&b;}
-// 			}
-// 		} else {
-// 			if(b[1]<c[1]){
-// 				s[0]=&b;
-// 				if(a[1]<c[1]){s[1]=&a; s[2]=&c;}
-// 				else {s[1]=&c; s[2]=&a;}
-// 			} else {
-// 				s[0]=&c;
-// 				if(a[1]<b[1]){s[1]=&a; s[2]=&b;}
-// 				else {s[1]=&b; s[2]=&a;}
-// 			}
-// 		}
-// 
-// 
-// 		if((*s[1])[0]>(*s[2])[0]) std::swap(s[1], s[2]);
-// 
-// 		if((*s[1])[1]==(*s[2])[1]) fillTriangle(s[0], s[1], s[2], col);
-// 		else if((*s[0])[1]==(*s[1])[1]) fillTriangle(s[2], s[0], s[1], col);
-// 		else {
-// 			v a1,a2, a3,a4;
-// 			a1 = (*s[0]);
-// 			if((*s[1])[1]<(*s[2])[1]){ a2=(*s[2]); a3=(*s[1]);} else {a2=(*s[1]); a3=(*s[2]);}
-// 			a4 = v(WIDTH,a3[1],1,1);
-// 			int denom = ((a1[0]-a2[0])*(a3[1]-a4[1])-(a1[1]-a2[1])*(a3[0]-a4[0]));
-// 			int x=WIDTH/2,y=HEIGHT/2;
-// 			if(denom!=0){
-// 				x = ((a1[0]*a2[1]-a1[1]*a2[0])*(a3[0]-a4[0])-(a1[0]-a2[0])*(a3[0]*a4[1]-a3[1]*a4[0]))/denom;
-// 				y = ((a1[0]*a2[1]-a1[1]*a2[0])*(a3[1]-a4[1])-(a1[1]-a2[1])*(a3[0]*a4[1]-a3[1]*a4[0]))/denom;
-// 			}
-// 			v m(x,y,a1[2],1);
-// 			fillTriangle(&a1, &a3, &m, col);
-// 			fillTriangle(&a2, &a3, &m, col);
-// 		}
-// 	} else {
-		TDraw::drawLine( a[0], a[1], b[0], b[1], color );
-		TDraw::drawLine( b[0], b[1], c[0], c[1], color );
-		TDraw::drawLine( c[0], c[1], a[0], a[1], color );
-// 	}
+void TDraw3D::drawTriangle( vec4 a, vec4 b, vec4 c, bool fill, char color ) {
+    if( fill ) {
+        ModelToClip(a); ModelToClip(b); ModelToClip(c); 
+        //clipLine(a, b); clipLine(a, c); clipLine(b, c);
+        ClipToScreen(a); ClipToScreen(b); ClipToScreen(c); 
+//         a = getPixel(a);
+//         b = getPixel(b);
+//         c = getPixel(c);
+		vec4* s[3];
+		if( a[1] < b[1] ){
+			if( a[1] < c[1] ){
+				s[0] = &a;
+				if( b[1] < c[1] ) { s[1]=&b; s[2]=&c; }
+			   	else { s[1]=&c; s[2]=&b; }
+			} else {
+				s[0] = &c;
+				if( b[1] < a[1] ) { s[1] = &b; s[2] = &a; }
+                else { s[1] = &a; s[2] = &b; }
+			}
+		} else {
+			if ( b[1] < c[1] ){
+				s[0] = &b;
+				if( a[1] < c[1] ) { s[1] = &a; s[2] = &c; }
+				else { s[1] = &c; s[2] = &a; }
+			} else {
+				s[0]=&c;
+				if( a[1] < b[1] ) { s[1] = &a; s[2] = &b; }
+				else { s[1] = &b; s[2] = &a; }
+			}
+		}
+
+		if( (*s[1])[0] > (*s[2])[0] ) std::swap( s[1], s[2] );
+
+		if( (*s[1])[1] == (*s[2])[1] ) {
+            fillTriangle( s[0], s[1], s[2], color );
+        } else if( (*s[0])[1] == (*s[1])[1] ) {
+            fillTriangle( s[2], s[0], s[1], color );
+        } else {
+			vec4 a1, a2, a3, a4;
+			a1 = (*s[0]);
+			if( (*s[1])[1] < (*s[2])[1] ) { 
+                a2=(*s[2]); 
+                a3=(*s[1]);
+                
+            } else {
+                a2=(*s[1]); 
+                a3=(*s[2]);
+            }
+			a4 = vec4( GetScreenWidth(), a3[1], 1, 1 );
+			int denom = ( (a1[0] - a2[0]) * (a3[1] - a4[1] ) - ( a1[1] - a2[1] ) * ( a3[0] - a4[0] ) );
+			int x = GetScreenWidth() / 2, y = GetScreenHeight() / 2;
+			if( denom != 0 ) {
+				x = ( (a1[0] * a2[1]-a1[1] * a2[0]) * (a3[0]-a4[0]) - (a1[0]-a2[0]) * (a3[0] * a4[1]-a3[1] * a4[0]) ) / denom;
+				y = ( (a1[0] * a2[1]-a1[1] * a2[0]) * (a3[1]-a4[1]) - (a1[1]-a2[1]) * (a3[0] * a4[1]-a3[1] * a4[0]) ) / denom;
+			}
+			vec4 m( x, y, a1[2], 1 );
+			fillTriangle( &a1, &a3, &m, color );
+			fillTriangle( &a2, &a3, &m, color );
+		}
+	} else {
+		draw3DLine( a, b, color );
+		draw3DLine( b, c, color );
+		draw3DLine( c, a, color );
+	}
 }
 
-v TDraw3D::getPixel(const v& p) {
-	//if(p[2] > 10) return v(-1,-1,0);
-	V a(p[0],p[1],p[2],1);
-	a = mvpM*a;
-	v b(a[0],a[1],a[2]);
-	b/=a[3];
-	b[0] = GetScreenWidth()/2*b[0] + GetScreenWidth()/2;
-	b[1] = GetScreenHeight()/2*b[1] + GetScreenHeight()/2;
-	b[2] = (far-near)/2*b[2] + (far+near)/2;
-	return b;
+void TDraw3D::fillTriangle( vec4* t, vec4* l, vec4* r, char color ) {
+    if( (*l)[0] > (*r)[0] ) std::swap( l ,r );
+	int h = std::abs( (*l)[1] - (*t)[1] ); 
+	if( h != 0 ) {
+		int lL = (*l)[0] - (*t)[0];
+		int rL = (*r)[0] - (*t)[0];
+		vec4 lT = *t, rT = *t;
+		int lOff, rOff;
+		for( int i = 0; i<=h; ++i ) {
+			if( (*t)[1] < (*l)[1] ){
+				lOff = lL * i / h;
+                rOff = rL * i / h;
+				lT[1] = rT[1] = ( i + (*t)[1] );
+			} else {
+				lOff = lL * (h-i) / h;
+                rOff = rL * (h-i) / h;
+				lT[1] = rT[1] = ( (*t)[1] - h + i );
+			}
+			lT[0] = (*t)[0] + lOff;
+            rT[0] = (*t)[0] + rOff + 1; 
+            char c1 = mapTo( (cPV-lT).length(), 0, amb, 8, 1 );
+            char c2 = mapTo( (cPV-rT).length(), 0, amb, 8, 1 );
+			drawLine( lT, rT, c1 );
+		}
+	}
 }
 
-void TDraw3D::setPixel(const v& v, char color) {
-	//if( v[0] < 0 or v[0] > GetScreenWidth() or v[1] < 0 or v[1] > GetScreenHeight() or v[2] < near or v[2] > far) return;
-	drawPixel( (int)v[0], (int)v[1], color );
+
+bool TDraw3D::isInFrustum( const vec4& a ) {
+    bool isInside = true;
+    isInside &= (a[0] < std::abs(a[3]));
+    isInside &= (a[1] < std::abs(a[3]));
+    isInside &= (a[2] < std::abs(a[3]));
+    isInside &= (a[3] > near);
+    return isInside;
+}
+
+
+void TDraw3D::ModelToClip( vec4& a ) {
+    a = mM*a;
+    a = vM*a;
+    a = pM*a;
+}
+
+void TDraw3D::ScreenToWorld( vec4& a ) {
+    float w = a[3];
+    a[3]=1.0f;
+    a = ivpM*a;
+    a *= w;
+    a = ipM*a;
+    a = ivM*a;
+}
+
+void TDraw3D::ClipToScreen( vec4& a ) {
+    float w = a[3];
+    a /= w;
+    a = vpM*a;
+    a[3] = w;
+}
+
+void TDraw3D::clipLine( vec4& a, vec4& b ) {
+    if( isInFrustum(a) != isInFrustum(b) ) {
+        float n = (a[3] - near) / (a[3] - b[3]);
+        float xc = (n * a[0]) + ((1-n) * b[0]);
+        float yc = (n * a[1]) + ((1-n) * b[1]);
+        float zc = (n * a[2]) + ((1-n) * b[2]);
+        b = {xc, yc, zc, near};
+    }
+}
+
+vec4 TDraw3D::getPixel( vec4 p ) {
+    ModelToClip(p);
+    ClipToScreen(p);
+	return p;
+}
+
+bool TDraw3D::setPixel( vec4 p, char color ) {
+    vec4 p1 = p;
+    ScreenToWorld(p1);
+//     if( !isInFrustum(p1) ) return false;
+    if( p[3] < 1 ) return false;
+    if( p[0] < 0 or p[0] > GetScreenWidth()-1 or p[1] < 0 or p[1] > GetScreenHeight()-1 ) return true;
+    int id = (int)p[0]*GetScreenHeight() + (int)p[1];
+    float depth = (cPV-p1).length();
+    //if( zDepth[id] > depth ) {
+        //zDepth[id] = depth;
+        drawPixel( p[0], p[1], mapTo( depth, 0, amb, 7, 1 ) );
+    //}
+    return true;
+}
+
+// Dump transformation data to file
+void TDraw3D::dumpTransformation( vec4 p ) {
+    
+    char str[200];
+    
+    std::ofstream file("data.txt");
+    
+    memset( str, 0, sizeof(str) );
+    mM.toString(str);
+    file << "Model matrix:\n" << str << std::endl;    
+    
+    memset( str, 0, sizeof(str) );
+    imM.toString(str);
+    file << "Model inverse:\n" << str << std::endl;      
+    
+    memset( str, 0, sizeof(str) );
+    vM.toString(str);
+    file << "View matrix:\n" << str << std::endl;      
+    
+    memset( str, 0, sizeof(str) );
+    ivM.toString(str);
+    file << "View inverse:\n" << str << std::endl;     
+    
+    memset( str, 0, sizeof(str) );
+    pM.toString(str);
+    file << "Projection matrix:\n" << str << std::endl;     
+    
+    memset( str, 0, sizeof(str) );
+    ipM.toString(str);
+    file << "Projection inverse:\n" << str << std::endl;    
+    
+    memset( str, 0, sizeof(str) );
+    vpM.toString(str);
+    file << "Viewport matrix:\n" << str << std::endl;     
+    
+    memset( str, 0, sizeof(str) );
+    ivpM.toString(str);
+    file << "Viewport inverse:\n" << str << std::endl;  
+    
+    memset( str, 0, sizeof(str) );
+    p.toString(str);
+    file << "\nInitial vector: " << str << std::endl;
+    
+    p = mM*p;  
+    
+    memset( str, 0, sizeof(str) );
+    p.toString(str);
+    file << "Model transformation: " << str << std::endl;
+    
+    p = vM*p;
+    
+    memset( str, 0, sizeof(str) );
+    p.toString(str);
+    file << "View transformation: " << str << std::endl;
+    
+    p = pM*p;
+    
+    memset( str, 0, sizeof(str) );
+    p.toString(str);
+    file << "Projection transformation: " << str << std::endl;
+    
+    float w = p[3];
+    p/=p[3];
+    
+    memset( str, 0, sizeof(str) );
+    p.toString(str);
+    file << "Perspective divide: " << str << std::endl;
+    
+    p = vpM*p;    
+    
+    memset( str, 0, sizeof(str) );
+    p.toString(str);
+    file << "Viewport transformation: " << str << std::endl;
+    
+    p = ivpM*p;
+    
+    memset( str, 0, sizeof(str) );
+    p.toString(str);
+    file << "Viewport inverse: " << str << std::endl;
+    
+    p *= w;
+    
+    memset( str, 0, sizeof(str) );
+    p.toString(str);
+    file << "Perspective divide inverse: " << str << std::endl;
+    
+    p = ipM*p;
+    
+    memset( str, 0, sizeof(str) );
+    p.toString(str);
+    file << "Projection inverse: " << str << std::endl;
+    
+    p = ivM*p;
+    
+    memset( str, 0, sizeof(str) );
+    p.toString(str);
+    file << "View inverse: " << str << std::endl;
+    
+    p = imM*p;
+    
+    memset( str, 0, sizeof(str) );
+    p.toString(str);
+    file << "Model inverse: " << str << std::endl;
+    
+    file.close();
 }
 
 //Load .OBJ file
@@ -330,26 +582,25 @@ void TDraw3D::drawObject( Model& model ) {
 	//int scale = 50;
 	for( size_t s = 0;s < model.shapes.size(); ++s ){
 		size_t index_offset = 0;
-		std::vector<v> shape;
-		for( size_t f = 0; f < model.shapes[s].mesh.num_face_vertices.size(); ++f ){
+		std::vector<vec4> shape;
+		for( size_t f = 0; f < model.shapes[s].mesh.num_face_vertices.size(); ++f ) {
 			size_t fv = model.shapes[s].mesh.num_face_vertices[f];
 			for( size_t ve = 0; ve < fv ; ++ve ){
 				tinyobj::index_t idx = model.shapes[s].mesh.indices[index_offset+ve];
 				float vx = model.attrib.vertices[3*idx.vertex_index+0];
 				float vy = model.attrib.vertices[3*idx.vertex_index+1];
 				float vz = model.attrib.vertices[3*idx.vertex_index+2];
-				v ver(vx,vy,vz);
+				vec4 ver(vx,vy,vz,1);
 				shape.push_back( ver );
-				setPixel( ver, model.color );
-				setPixel(v( ver[0]+1, ver[1], ver[2]), model.color );
-				setPixel(v( ver[0]-1, ver[1], ver[2]), model.color );
-				setPixel(v( ver[0], ver[1]+1, ver[2]), model.color );
-				setPixel(v( ver[0], ver[1]-1, ver[2]), model.color );
+				setPixel( getPixel(ver), 7 );
+				setPixel(getPixel(vec4( ver[0]+1, ver[1], ver[2], 1 )), 7 );
+				setPixel(getPixel(vec4( ver[0]-1, ver[1], ver[2], 1 )), 7 );
+				setPixel(getPixel(vec4( ver[0], ver[1]+1, ver[2], 1 )), 7 );
+				setPixel(getPixel(vec4( ver[0], ver[1]-1, ver[2], 1 )), 7 );
 			}
 			for(size_t sh=0; sh<shape.size()/2; ++sh)
-				TDraw::drawLine( shape[sh][0], shape[sh][1], shape[sh+1][0], shape[sh+1][1], model.color);
+				drawLine( shape[sh], shape[sh+1][0], 7);
 			index_offset+=fv;
 		}
 	}
-
 }
